@@ -8,6 +8,7 @@
 
 - LINE webhook 接收與回覆訊息
 - Gemini-backed 一般問答與多輪短期上下文
+- Tavily 一般網路搜尋，回覆搜尋摘要與來源網址
 - 使用者隔離的待辦、提醒、記憶與短期對話資料
 - 明確指令才建立長期記憶，普通聊天不自動保存成記憶
 - Cloudflare D1 儲存資料
@@ -25,6 +26,7 @@ LINE Messaging API
 Cloudflare Worker /webhook
    |       |       |
    |       |       +--> Gemini API
+   |       |       +--> Tavily Search API
    |       +----------> Cloudflare D1
    +------------------> LINE Reply / Push API
 
@@ -71,6 +73,7 @@ docs/superpowers/           design and implementation planning notes
 - A Cloudflare account with Workers and D1 enabled
 - A LINE Messaging API channel
 - A Gemini API key
+- A Tavily API key (optional unless enabling web search)
 
 ## Local Setup
 
@@ -92,6 +95,7 @@ Edit `.dev.vars` with real values:
 LINE_CHANNEL_SECRET=...
 LINE_CHANNEL_ACCESS_TOKEN=...
 GEMINI_API_KEY=...
+TAVILY_API_KEY=...
 ```
 
 Run checks:
@@ -143,6 +147,7 @@ Set production secrets:
 wrangler secret put LINE_CHANNEL_SECRET
 wrangler secret put LINE_CHANNEL_ACCESS_TOKEN
 wrangler secret put GEMINI_API_KEY
+wrangler secret put TAVILY_API_KEY
 ```
 
 Deploy:
@@ -181,6 +186,10 @@ After deployment, send messages to the LINE bot:
 
 ```text
 幫我解釋量子糾纏
+```
+
+```text
+幫我搜尋 Cloudflare D1 文件
 ```
 
 ```text

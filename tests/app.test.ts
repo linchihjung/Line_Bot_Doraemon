@@ -204,6 +204,7 @@ function createFixture(options: {
       LINE_CHANNEL_SECRET: "channel-secret",
       LINE_CHANNEL_ACCESS_TOKEN: "channel-token",
       GEMINI_API_KEY: "gemini-key",
+      TAVILY_API_KEY: "tavily-key",
     } satisfies Env,
     repos,
     line,

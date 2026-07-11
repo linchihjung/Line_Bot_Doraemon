@@ -5,6 +5,7 @@ import type {
   TodoRepository,
 } from "../db/repositories";
 import type { GeminiClient, GeminiResult } from "../llm/gemini";
+import type { WebSearchClient, WebSearchResult } from "../search/tavily";
 import { isSensitiveContent } from "../security/sensitive-content";
 import { parseTimezone, toUtcIso } from "../timezone";
 import {
@@ -32,6 +33,7 @@ export interface RouteInput {
     conversations: ConversationRepository;
   };
   gemini: Pick<GeminiClient, "generate">;
+  webSearch?: Pick<WebSearchClient, "search">;
   idGenerator?: () => string;
   setUserTimezone?: (
     userId: string,
@@ -89,6 +91,20 @@ export async function routeMessage(input: RouteInput): Promise<RouteResult> {
     return executeExplicitCommand(input, explicitCommand, nowUtc, nextId);
   }
 
+  const searchQuery = parseWebSearchQuery(text);
+  if (searchQuery) {
+    if (!input.webSearch) {
+      return { replyText: "網路搜尋功能尚未設定，請稍後再試。" };
+    }
+
+    try {
+      const results = await input.webSearch.search(searchQuery);
+      return { replyText: formatSearchResults(searchQuery, results) };
+    } catch {
+      return { replyText: "我現在暫時無法完成網路搜尋，請稍後再試。" };
+    }
+  }
+
   const recentMessages = await input.repos.conversations.listRecent(
     input.userId,
     RECENT_MESSAGE_LIMIT,
@@ -110,6 +126,26 @@ export async function routeMessage(input: RouteInput): Promise<RouteResult> {
   });
 
   return executeModelResult(input, modelResult, text, nowUtc, nextId);
+}
+
+function parseWebSearchQuery(text: string): string | undefined {
+  const match = /^(?:請)?(?:幫我)?(?:搜尋|查詢|查一下|找一下|上網查|網路搜尋)\s*(.+)$/.exec(
+    text,
+  );
+  return match?.[1]?.trim() || undefined;
+}
+
+function formatSearchResults(query: string, results: WebSearchResult[]): string {
+  if (results.length === 0) {
+    return `我沒有找到「${query}」的搜尋結果。`;
+  }
+
+  return [
+    `這是「${query}」的搜尋結果：`,
+    ...results.map(
+      (result, index) => `${index + 1}. ${result.title}\n${result.snippet}\n來源：${result.url}`,
+    ),
+  ].join("\n\n");
 }
 
 async function executeExplicitCommand(
@@ -498,3 +534,14 @@ async function storeChatTurn(
   });
   await input.repos.conversations.addMessage({
     id: nextId(),
+    userId: input.userId,
+    role: "assistant",
+    content: assistantText,
+    createdAtUtc: nowUtc,
+  });
+  await input.repos.conversations.pruneRecent(input.userId, RECENT_MESSAGE_LIMIT);
+}
+
+function normalizeNow(now: Date | string): string {
+  return now instanceof Date ? now.toISOString() : new Date(now).toISOString();
+}
