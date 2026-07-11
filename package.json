@@ -1,8 +1,14 @@
 {
   "name": "line-bot-assistant",
   "version": "0.1.0",
+  "description": "A Cloudflare Workers LINE personal assistant bot with D1 storage, reminders, memory, and Gemini-backed chat.",
   "private": true,
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/linchihjung/Line_Bot_Doraemon.git"
+  },
   "scripts": {
     "dev": "wrangler dev",
     "test": "vitest",

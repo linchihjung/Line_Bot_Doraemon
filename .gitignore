@@ -1,6 +1,7 @@
 .worktrees/
 .superpowers/
 .DS_Store
+.pnpm-store/
 node_modules/
 .wrangler/
 dist/
