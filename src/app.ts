@@ -137,6 +137,9 @@ export function createWorker(
             await line.reply(event.replyToken, result.replyText);
           } catch (error) {
             if (error instanceof LlmUnavailableError) {
+              console.warn("LLM unavailable while processing LINE webhook", {
+                message: error.message,
+              });
               await line.reply(
                 event.replyToken,
                 "我現在有點連不上模型，請稍後再試一次。",

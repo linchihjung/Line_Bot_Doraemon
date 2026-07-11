@@ -47,7 +47,7 @@ describe("GeminiClient", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/models/gemini-"),
+      expect.stringContaining("/models/gemini-3.5-flash:generateContent"),
       expect.objectContaining({
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -115,6 +115,45 @@ describe("GeminiClient", () => {
           recentMessages: [],
         }),
     ).rejects.toBeInstanceOf(LlmUnavailableError);
+  });
+
+  it("keeps safe fetch failure details for diagnostics", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError("fetch failed"));
+    const client = new GeminiClient({ apiKey: "test-key", fetch: fetchMock });
+
+    await expect(
+      client.generate({
+        message: "hello",
+        timezone: "Asia/Taipei",
+        recentMessages: [],
+      }),
+    ).rejects.toThrow("Gemini request failed: fetch failed");
+  });
+
+  it("does not call the configured fetch with the GeminiClient as this", async () => {
+    const fetchMock = vi.fn(function (this: unknown) {
+      if (this instanceof GeminiClient) {
+        throw new TypeError("Illegal invocation");
+      }
+
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            candidates: [{ content: { parts: [{ text: "OK" }] } }],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    });
+    const client = new GeminiClient({ apiKey: "test-key", fetch: fetchMock });
+
+    await expect(
+      client.generate({
+        message: "hello",
+        timezone: "Asia/Taipei",
+        recentMessages: [],
+      }),
+    ).resolves.toEqual({ type: "chat", text: "OK" });
   });
 
   it("normalizes malformed JSON object output", async () => {

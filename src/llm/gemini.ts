@@ -1,7 +1,7 @@
 import { ZodError } from "zod";
 import { intentSchema, type Intent } from "../intent/schema";
 
-const DEFAULT_MODEL = "gemini-1.5-flash";
+const DEFAULT_MODEL = "gemini-3.5-flash";
 const DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 const DEFAULT_TIMEOUT_MS = 10_000;
 
@@ -40,7 +40,9 @@ export class GeminiClient {
 
   constructor(options: GeminiClientOptions) {
     this.apiKey = options.apiKey;
-    this.fetchImpl = options.fetch ?? fetch;
+    this.fetchImpl = options.fetch
+      ? (input, init) => options.fetch!(input, init)
+      : (input, init) => fetch(input, init);
     this.model = options.model ?? DEFAULT_MODEL;
     this.baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -81,7 +83,7 @@ export class GeminiClient {
       }
 
       if (error instanceof TypeError) {
-        throw new LlmUnavailableError("Gemini request failed");
+        throw new LlmUnavailableError(`Gemini request failed: ${error.message}`);
       }
 
       if (error instanceof SyntaxError || error instanceof ZodError) {

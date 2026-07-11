@@ -98,22 +98,33 @@ describe("worker", () => {
   });
 
   it("replies safely when the model is unavailable after event dedupe", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const fixture = createFixture({
-      routeMessage: vi.fn().mockRejectedValue(new LlmUnavailableError("busy")),
+      routeMessage: vi
+        .fn()
+        .mockRejectedValue(new LlmUnavailableError("Gemini request failed with 403")),
     });
     const worker = createWorker(fixture.deps);
 
-    const response = await worker.fetch!(
-      webhookRequest({ replyToken: "reply-token-llm" }),
-      fixture.env,
-      executionContext(),
-    );
+    try {
+      const response = await worker.fetch!(
+        webhookRequest({ replyToken: "reply-token-llm" }),
+        fixture.env,
+        executionContext(),
+      );
 
-    expect(response.status).toBe(200);
-    expect(fixture.line.reply).toHaveBeenCalledWith(
-      "reply-token-llm",
-      expect.stringContaining("稍後"),
-    );
+      expect(response.status).toBe(200);
+      expect(fixture.line.reply).toHaveBeenCalledWith(
+        "reply-token-llm",
+        expect.stringContaining("稍後"),
+      );
+      expect(warn).toHaveBeenCalledWith(
+        "LLM unavailable while processing LINE webhook",
+        { message: "Gemini request failed with 403" },
+      );
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("passes current UTC time into scheduled reminder processing", async () => {
