@@ -100,7 +100,10 @@ export async function routeMessage(input: RouteInput): Promise<RouteResult> {
     try {
       const results = await input.webSearch.search(searchQuery);
       return { replyText: formatSearchResults(searchQuery, results) };
-    } catch {
+    } catch (error) {
+      console.warn("Web search failed", {
+        message: error instanceof Error ? error.message : "Unknown web search error",
+      });
       return { replyText: "我現在暫時無法完成網路搜尋，請稍後再試。" };
     }
   }
@@ -495,53 +498,3 @@ async function clearRecentConversation(
   }
 
   await input.clearRecentConversation(input.userId, nowUtc);
-  return { replyText: "已清除近期對話。" };
-}
-
-async function deleteAllData(
-  input: RouteInput,
-  confirmed: boolean,
-  nowUtc: string,
-): Promise<RouteResult> {
-  if (!confirmed) {
-    return {
-      replyText:
-        "刪除所有資料需要明確確認。若你真的要刪除，請輸入：確認刪除所有資料",
-    };
-  }
-
-  if (!input.deleteAllUserData) {
-    return { replyText: "目前無法刪除所有資料。" };
-  }
-
-  await input.deleteAllUserData(input.userId, nowUtc);
-  return { replyText: "已刪除所有資料。" };
-}
-
-async function storeChatTurn(
-  input: RouteInput,
-  userText: string,
-  assistantText: string,
-  nowUtc: string,
-  nextId: () => string,
-): Promise<void> {
-  await input.repos.conversations.addMessage({
-    id: nextId(),
-    userId: input.userId,
-    role: "user",
-    content: userText,
-    createdAtUtc: nowUtc,
-  });
-  await input.repos.conversations.addMessage({
-    id: nextId(),
-    userId: input.userId,
-    role: "assistant",
-    content: assistantText,
-    createdAtUtc: nowUtc,
-  });
-  await input.repos.conversations.pruneRecent(input.userId, RECENT_MESSAGE_LIMIT);
-}
-
-function normalizeNow(now: Date | string): string {
-  return now instanceof Date ? now.toISOString() : new Date(now).toISOString();
-}
