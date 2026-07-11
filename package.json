@@ -1,0 +1,22 @@
+{
+  "name": "line-bot-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "db:migration:local": "wrangler d1 migrations apply LINE_ASSISTANT_DB --local",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240725.0",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5",
+    "wrangler": "^3.66.0"
+  }
+}
