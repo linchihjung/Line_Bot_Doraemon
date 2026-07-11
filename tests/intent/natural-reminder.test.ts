@@ -52,6 +52,7 @@ describe("parseNaturalReminder", () => {
   it("detects unsupported reminder-like text that needs clarification", () => {
     expect(needsNaturalReminderClarification("週末提醒我整理房間")).toBe(true);
     expect(needsNaturalReminderClarification("提醒 週末 整理房間")).toBe(true);
+    expect(needsNaturalReminderClarification("請在週末提醒我整理房間")).toBe(true);
     expect(needsNaturalReminderClarification("幫我明天下班前提醒寄信")).toBe(false);
   });
 });

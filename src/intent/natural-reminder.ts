@@ -56,7 +56,7 @@ export function parseNaturalReminder(
 
 export function needsNaturalReminderClarification(text: string): boolean {
   const trimmed = text.trim();
-  return /^週末提醒我\s*.+$/.test(trimmed) || /^提醒\s+週末\s+.+$/.test(trimmed);
+  return trimmed.includes("週末") && trimmed.includes("提醒");
 }
 
 function parseRelativeReminder(
