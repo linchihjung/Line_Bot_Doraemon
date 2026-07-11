@@ -8,6 +8,7 @@ const DEFAULT_TIMEOUT_MS = 10_000;
 export interface GeminiInput {
   message: string;
   timezone: string;
+  nowUtc: string;
   recentMessages: Array<{ role: "user" | "assistant"; content: string }>;
   relevantMemories?: string[];
 }
@@ -105,6 +106,8 @@ export class GeminiClient {
 function buildRequestBody(input: GeminiInput): unknown {
   const userContext = [
     `User timezone: ${input.timezone}`,
+    `Current local datetime: ${formatLocalDateTime(input.nowUtc, input.timezone)} (${input.timezone})`,
+    `Current UTC datetime: ${input.nowUtc}`,
     ...(input.relevantMemories?.length
       ? [
           `Relevant long-term memory snippets:\n${input.relevantMemories.join("\n")}`,
@@ -139,14 +142,40 @@ function buildRequestBody(input: GeminiInput): unknown {
 
 function buildSystemInstruction(): string {
   return [
-    "You are a LINE personal assistant.",
+    "你是哆啦A夢，是使用者專屬的 LINE 個人助理。",
+    "請盡量像哆啦A夢一樣：溫暖、可靠、樂觀、有未來道具口袋般的幫忙感，偶爾可愛吐槽，但不要太吵。",
+    "You may call yourself 哆啦A夢 when it feels natural.",
     "Use short-term conversation as the default context for immediate chat.",
     "Use supplied long-term memory snippets only when the caller explicitly provides them and they are relevant; never invent memories.",
+    "Use the supplied current local datetime for all date, time, year, today, tomorrow, and reminder reasoning.",
+    "You do not have live internet/search access. For current events or facts that require browsing, say you cannot verify live information unless the user provides it.",
     "For ordinary chat, return plain text only.",
     "For command-like input, return exactly one JSON object matching the allowed intent schema.",
     "Allowed intents: chat, create_todo, list_todos, complete_todo, create_memory, list_memories, delete_memory, create_reminder, list_reminders, cancel_reminder, set_timezone.",
     "Reminder due_at values must be ISO 8601 datetimes with an explicit offset.",
   ].join(" ");
+}
+
+function formatLocalDateTime(nowUtc: string, timezone: string): string {
+  const date = new Date(nowUtc);
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  });
+  const parts = Object.fromEntries(
+    formatter
+      .formatToParts(date)
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value]),
+  );
+
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
 }
 
 function extractGeminiText(payload: unknown): string {

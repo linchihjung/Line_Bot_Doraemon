@@ -210,6 +210,7 @@ describe("routeMessage", () => {
     expect(fixture.gemini.generate).toHaveBeenCalledWith({
       message: "幫我想晚餐",
       timezone: "Asia/Taipei",
+      nowUtc: NOW.toISOString(),
       recentMessages: expect.arrayContaining([
         { role: "assistant", content: "old message 19" },
       ]),

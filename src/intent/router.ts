@@ -74,6 +74,7 @@ export async function routeMessage(input: RouteInput): Promise<RouteResult> {
   const modelResult = await input.gemini.generate({
     message: text,
     timezone,
+    nowUtc,
     recentMessages: recentMessages
       .slice()
       .reverse()
