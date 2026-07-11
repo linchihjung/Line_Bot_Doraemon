@@ -7,7 +7,10 @@ import type {
 import type { GeminiClient, GeminiResult } from "../llm/gemini";
 import { isSensitiveContent } from "../security/sensitive-content";
 import { parseTimezone, toUtcIso } from "../timezone";
-import { parseNaturalReminder } from "./natural-reminder";
+import {
+  needsNaturalReminderClarification,
+  parseNaturalReminder,
+} from "./natural-reminder";
 import { intentSchema, type Intent } from "./schema";
 
 const RECENT_MESSAGE_LIMIT = 8;
@@ -72,6 +75,13 @@ export async function routeMessage(input: RouteInput): Promise<RouteResult> {
       nowUtc,
       nextId,
     );
+  }
+
+  if (needsNaturalReminderClarification(text)) {
+    return {
+      replyText:
+        "週末我可以提醒你，不過需要更明確一點：請告訴我是週六或週日、幾點，例如「週六早上九點提醒我整理房間」。",
+    };
   }
 
   const explicitCommand = parseExplicitCommand(text, timezone);

@@ -140,6 +140,17 @@ describe("routeMessage", () => {
     expect(fixture.gemini.generate).not.toHaveBeenCalled();
   });
 
+  it("asks for clarification for vague weekend reminders without calling Gemini", async () => {
+    const fixture = createFixture();
+
+    const result = await routeMessage(fixture.input({ text: "週末提醒我整理房間" }));
+
+    expect(result.replyText).toContain("週末");
+    expect(result.replyText).toContain("幾點");
+    expect(fixture.gemini.generate).not.toHaveBeenCalled();
+    expect(fixture.reminders.records).toEqual([]);
+  });
+
   it("falls back to Gemini for unsupported natural reminder phrasing", async () => {
     const fixture = createFixture({
       geminiResult: {
@@ -152,7 +163,7 @@ describe("routeMessage", () => {
       },
     });
 
-    const result = await routeMessage(fixture.input({ text: "週末提醒我整理房間" }));
+    const result = await routeMessage(fixture.input({ text: "幫我明天下班前提醒寄信" }));
 
     expect(result.replyText).toContain("已設定提醒");
     expect(fixture.gemini.generate).toHaveBeenCalledOnce();
