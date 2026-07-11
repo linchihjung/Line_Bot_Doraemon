@@ -27,6 +27,21 @@ describe("routeMessage", () => {
     expect(fixture.gemini.generate).not.toHaveBeenCalled();
   });
 
+  it("does not create duplicate explicit memories for the same user and content", async () => {
+    const fixture = createFixture();
+
+    await routeMessage(fixture.input({ text: "記住 我喜歡無糖茶" }));
+    const duplicateResult = await routeMessage(
+      fixture.input({ text: "記住 我喜歡無糖茶" }),
+    );
+
+    expect(duplicateResult.replyText).toContain("已經記得");
+    expect(fixture.memories.records).toMatchObject([
+      { id: "id-1", user_id: "user-a", content: "我喜歡無糖茶" },
+    ]);
+    expect(fixture.gemini.generate).not.toHaveBeenCalled();
+  });
+
   it("warns and skips writes for sensitive explicit memory commands", async () => {
     const fixture = createFixture();
 

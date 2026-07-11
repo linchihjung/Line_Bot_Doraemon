@@ -298,6 +298,11 @@ async function createMemory(
     return { replyText: MEMORY_SENSITIVE_WARNING };
   }
 
+  const existingMemories = await input.repos.memories.search(input.userId, content, 1);
+  if (existingMemories.some((memory) => memory.content === content)) {
+    return { replyText: `我已經記得囉：${content}` };
+  }
+
   await input.repos.memories.create({
     id: nextId(),
     userId: input.userId,
