@@ -65,6 +65,12 @@ describe("GeminiClient", () => {
       "Current local datetime: 2026-07-11 09:30:00 (Asia/Taipei)",
     );
     expect(body.contents.at(-1).parts[0].text).toContain(
+      "Current local weekday: Saturday",
+    );
+    expect(body.contents.at(-1).parts[0].text).toContain(
+      "Current local weekday zh-TW: 星期六",
+    );
+    expect(body.contents.at(-1).parts[0].text).toContain(
       "Current UTC datetime: 2026-07-11T01:30:00.000Z",
     );
     expect(body.contents.at(-1).parts[0].text).not.toContain("Long-term memories");

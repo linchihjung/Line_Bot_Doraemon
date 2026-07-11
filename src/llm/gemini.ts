@@ -107,6 +107,8 @@ function buildRequestBody(input: GeminiInput): unknown {
   const userContext = [
     `User timezone: ${input.timezone}`,
     `Current local datetime: ${formatLocalDateTime(input.nowUtc, input.timezone)} (${input.timezone})`,
+    `Current local weekday: ${formatLocalWeekday(input.nowUtc, input.timezone, "en-US")}`,
+    `Current local weekday zh-TW: ${formatLocalWeekday(input.nowUtc, input.timezone, "zh-TW")}`,
     `Current UTC datetime: ${input.nowUtc}`,
     ...(input.relevantMemories?.length
       ? [
@@ -147,7 +149,7 @@ function buildSystemInstruction(): string {
     "You may call yourself 哆啦A夢 when it feels natural.",
     "Use short-term conversation as the default context for immediate chat.",
     "Use supplied long-term memory snippets only when the caller explicitly provides them and they are relevant; never invent memories.",
-    "Use the supplied current local datetime for all date, time, year, today, tomorrow, and reminder reasoning.",
+    "Use the supplied current local datetime and weekday for all date, time, year, today, tomorrow, weekday, and reminder reasoning; do not infer or recalculate weekdays from memory.",
     "You do not have live internet/search access. For current events or facts that require browsing, say you cannot verify live information unless the user provides it.",
     "For ordinary chat, return plain text only.",
     "For command-like input, return exactly one JSON object matching the allowed intent schema.",
@@ -176,6 +178,13 @@ function formatLocalDateTime(nowUtc: string, timezone: string): string {
   );
 
   return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+}
+
+function formatLocalWeekday(nowUtc: string, timezone: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: timezone,
+    weekday: "long",
+  }).format(new Date(nowUtc));
 }
 
 function extractGeminiText(payload: unknown): string {
