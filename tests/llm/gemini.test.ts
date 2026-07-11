@@ -47,7 +47,7 @@ describe("GeminiClient", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/models/gemini-3.5-flash:generateContent"),
+      expect.stringContaining("/models/gemini-3.1-flash-lite:generateContent"),
       expect.objectContaining({
         method: "POST",
         headers: { "Content-Type": "application/json" },

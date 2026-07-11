@@ -1,7 +1,7 @@
 import { ZodError } from "zod";
 import { intentSchema, type Intent } from "../intent/schema";
 
-const DEFAULT_MODEL = "gemini-3.5-flash";
+const DEFAULT_MODEL = "gemini-3.1-flash-lite";
 const DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 const DEFAULT_TIMEOUT_MS = 10_000;
 
