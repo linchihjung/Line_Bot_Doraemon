@@ -1,7 +1,8 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig, defaultExclude } from "vitest/config";
 
 export default defineConfig({
   test: {
-    environment: "node"
-  }
+    environment: "node",
+    exclude: [...defaultExclude, "**/.worktrees/**", "**/.pnpm-store/**"],
+  },
 });
