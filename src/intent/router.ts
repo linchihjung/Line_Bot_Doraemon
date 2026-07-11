@@ -8,6 +8,7 @@ import type { GeminiClient, GeminiResult } from "../llm/gemini";
 import { isSensitiveContent } from "../security/sensitive-content";
 import { parseTimezone, toUtcIso } from "../timezone";
 import {
+  NATURAL_REMINDER_CLARIFICATION_REPLY,
   needsNaturalReminderClarification,
   parseNaturalReminder,
 } from "./natural-reminder";
@@ -79,8 +80,7 @@ export async function routeMessage(input: RouteInput): Promise<RouteResult> {
 
   if (needsNaturalReminderClarification(text)) {
     return {
-      replyText:
-        "週末我可以提醒你，不過需要更明確一點：請告訴我是週六或週日、幾點，例如「週六早上九點提醒我整理房間」。",
+      replyText: NATURAL_REMINDER_CLARIFICATION_REPLY,
     };
   }
 
@@ -498,14 +498,3 @@ async function storeChatTurn(
   });
   await input.repos.conversations.addMessage({
     id: nextId(),
-    userId: input.userId,
-    role: "assistant",
-    content: assistantText,
-    createdAtUtc: nowUtc,
-  });
-  await input.repos.conversations.pruneRecent(input.userId, RECENT_MESSAGE_LIMIT);
-}
-
-function normalizeNow(now: Date | string): string {
-  return now instanceof Date ? now.toISOString() : new Date(now).toISOString();
-}

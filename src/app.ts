@@ -5,6 +5,10 @@ import { LineClient } from "./line/client";
 import { verifyLineSignature } from "./line/signature";
 import { routeMessage, type RouteInput } from "./intent/router";
 import {
+  NATURAL_REMINDER_CLARIFICATION_REPLY,
+  needsNaturalReminderClarification,
+} from "./intent/natural-reminder";
+import {
   processDueReminders,
   type ReminderDependencies,
   type ReminderProcessSummary,
@@ -140,6 +144,14 @@ export function createWorker(
               console.warn("LLM unavailable while processing LINE webhook", {
                 message: error.message,
               });
+              if (needsNaturalReminderClarification(event.message.text)) {
+                await line.reply(
+                  event.replyToken,
+                  NATURAL_REMINDER_CLARIFICATION_REPLY,
+                );
+                continue;
+              }
+
               await line.reply(
                 event.replyToken,
                 "我現在有點連不上模型，請稍後再試一次。",
