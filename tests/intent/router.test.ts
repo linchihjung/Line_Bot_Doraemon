@@ -113,6 +113,23 @@ describe("routeMessage", () => {
     ]);
   });
 
+  it("creates natural language reminders without calling Gemini", async () => {
+    const fixture = createFixture();
+
+    const result = await routeMessage(fixture.input({ text: "明天早上九點提醒我開會" }));
+
+    expect(result.replyText).toContain("已設定提醒");
+    expect(fixture.reminders.records).toMatchObject([
+      {
+        id: "id-1",
+        user_id: "user-a",
+        message: "開會",
+        due_at_utc: "2026-07-11T01:00:00.000Z",
+      },
+    ]);
+    expect(fixture.gemini.generate).not.toHaveBeenCalled();
+  });
+
   it("asks for clarification when explicit reminders lack complete date and time", async () => {
     const fixture = createFixture();
 
@@ -121,6 +138,32 @@ describe("routeMessage", () => {
     expect(result.replyText).toContain("日期和時間");
     expect(fixture.reminders.records).toEqual([]);
     expect(fixture.gemini.generate).not.toHaveBeenCalled();
+  });
+
+  it("falls back to Gemini for unsupported natural reminder phrasing", async () => {
+    const fixture = createFixture({
+      geminiResult: {
+        type: "intent",
+        intent: {
+          intent: "create_reminder",
+          content: "整理房間",
+          due_at: "2026-07-12T10:00:00+08:00",
+        },
+      },
+    });
+
+    const result = await routeMessage(fixture.input({ text: "週末提醒我整理房間" }));
+
+    expect(result.replyText).toContain("已設定提醒");
+    expect(fixture.gemini.generate).toHaveBeenCalledOnce();
+    expect(fixture.reminders.records).toMatchObject([
+      {
+        id: "id-1",
+        user_id: "user-a",
+        message: "整理房間",
+        due_at_utc: "2026-07-12T02:00:00.000Z",
+      },
+    ]);
   });
 
   it("lists and deletes memories with user scope", async () => {
