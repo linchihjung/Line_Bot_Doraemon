@@ -1,0 +1,12 @@
+name = "line-bot-assistant"
+main = "src/app.ts"
+compatibility_date = "2026-07-10"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "LINE_ASSISTANT_DB"
+database_id = "dfdb9cea-83f0-447a-9819-f4eea6365a12"
+migrations_dir = "src/db/migrations"
+
+[triggers]
+crons = ["* * * * *"]
