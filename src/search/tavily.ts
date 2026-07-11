@@ -34,7 +34,9 @@ export class TavilySearchClient implements WebSearchClient {
 
   constructor(options: TavilySearchClientOptions) {
     this.apiKey = options.apiKey;
-    this.fetchImpl = options.fetch ?? fetch;
+    this.fetchImpl = options.fetch
+      ? (input, init) => options.fetch!(input, init)
+      : (input, init) => globalThis.fetch(input, init);
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.maxResults = options.maxResults ?? DEFAULT_MAX_RESULTS;
   }
