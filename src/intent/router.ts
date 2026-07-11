@@ -7,6 +7,7 @@ import type {
 import type { GeminiClient, GeminiResult } from "../llm/gemini";
 import { isSensitiveContent } from "../security/sensitive-content";
 import { parseTimezone, toUtcIso } from "../timezone";
+import { parseNaturalReminder } from "./natural-reminder";
 import { intentSchema, type Intent } from "./schema";
 
 const RECENT_MESSAGE_LIMIT = 8;
@@ -61,6 +62,17 @@ export async function routeMessage(input: RouteInput): Promise<RouteResult> {
   const nowUtc = normalizeNow(input.now);
   const timezone = parseTimezone(input.userTimezone, "UTC");
   const nextId = input.idGenerator ?? (() => crypto.randomUUID());
+
+  const naturalReminder = parseNaturalReminder(text, { nowUtc, timezone });
+  if (naturalReminder) {
+    return createReminder(
+      input,
+      naturalReminder.message,
+      naturalReminder.dueAtUtc,
+      nowUtc,
+      nextId,
+    );
+  }
 
   const explicitCommand = parseExplicitCommand(text, timezone);
   if (explicitCommand) {
