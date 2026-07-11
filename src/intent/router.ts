@@ -145,8 +145,9 @@ function formatSearchResults(query: string, results: WebSearchResult[]): string 
 
   return [
     `這是「${query}」的搜尋結果：`,
-    ...results.map(
-      (result, index) => `${index + 1}. ${result.title}\n${result.snippet}\n來源：${result.url}`,
+    ...results.slice(0, 3).map(
+      (result, index) =>
+        `${index + 1}. ${result.title}\n${result.snippet.slice(0, 600)}\n來源：${result.url}`,
     ),
   ].join("\n\n");
 }
@@ -498,3 +499,53 @@ async function clearRecentConversation(
   }
 
   await input.clearRecentConversation(input.userId, nowUtc);
+  return { replyText: "已清除近期對話。" };
+}
+
+async function deleteAllData(
+  input: RouteInput,
+  confirmed: boolean,
+  nowUtc: string,
+): Promise<RouteResult> {
+  if (!confirmed) {
+    return {
+      replyText:
+        "刪除所有資料需要明確確認。若你真的要刪除，請輸入：確認刪除所有資料",
+    };
+  }
+
+  if (!input.deleteAllUserData) {
+    return { replyText: "目前無法刪除所有資料。" };
+  }
+
+  await input.deleteAllUserData(input.userId, nowUtc);
+  return { replyText: "已刪除所有資料。" };
+}
+
+async function storeChatTurn(
+  input: RouteInput,
+  userText: string,
+  assistantText: string,
+  nowUtc: string,
+  nextId: () => string,
+): Promise<void> {
+  await input.repos.conversations.addMessage({
+    id: nextId(),
+    userId: input.userId,
+    role: "user",
+    content: userText,
+    createdAtUtc: nowUtc,
+  });
+  await input.repos.conversations.addMessage({
+    id: nextId(),
+    userId: input.userId,
+    role: "assistant",
+    content: assistantText,
+    createdAtUtc: nowUtc,
+  });
+  await input.repos.conversations.pruneRecent(input.userId, RECENT_MESSAGE_LIMIT);
+}
+
+function normalizeNow(now: Date | string): string {
+  return now instanceof Date ? now.toISOString() : new Date(now).toISOString();
+}

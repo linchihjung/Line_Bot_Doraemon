@@ -171,7 +171,10 @@ export function createWorker(
         }
 
         return new Response("OK", { status: 200 });
-      } catch {
+      } catch (error) {
+        console.error("LINE webhook processing failed", {
+          message: error instanceof Error ? error.message : "Unknown webhook error",
+        });
         return new Response("Internal Server Error", { status: 500 });
       }
     },
