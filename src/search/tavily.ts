@@ -82,8 +82,12 @@ export class TavilySearchClient implements WebSearchClient {
         throw new WebSearchUnavailableError("Tavily request timed out");
       }
 
-      if (error instanceof TypeError || error instanceof SyntaxError) {
-        throw new WebSearchUnavailableError("Tavily request failed");
+      if (error instanceof TypeError) {
+        throw new WebSearchUnavailableError(`Tavily network request failed: ${error.message}`);
+      }
+
+      if (error instanceof SyntaxError) {
+        throw new WebSearchUnavailableError("Tavily returned invalid JSON");
       }
 
       throw error;
