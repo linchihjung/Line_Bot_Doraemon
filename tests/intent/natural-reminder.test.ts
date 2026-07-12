@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { parseNaturalReminder } from "../../src/intent/natural-reminder";
+import {
+  needsNaturalReminderClarification,
+  parseNaturalReminder,
+} from "../../src/intent/natural-reminder";
 
 const options = {
   nowUtc: "2026-07-10T08:00:00.000Z",
@@ -44,5 +47,12 @@ describe("parseNaturalReminder", () => {
 
   it("returns undefined for unsupported vague reminders", () => {
     expect(parseNaturalReminder("週末提醒我整理房間", options)).toBeUndefined();
+  });
+
+  it("detects unsupported reminder-like text that needs clarification", () => {
+    expect(needsNaturalReminderClarification("週末提醒我整理房間")).toBe(true);
+    expect(needsNaturalReminderClarification("提醒 週末 整理房間")).toBe(true);
+    expect(needsNaturalReminderClarification("請在週末提醒我整理房間")).toBe(true);
+    expect(needsNaturalReminderClarification("幫我明天下班前提醒寄信")).toBe(false);
   });
 });

@@ -10,6 +10,9 @@ export interface NaturalReminderResult {
   message: string;
 }
 
+export const NATURAL_REMINDER_CLARIFICATION_REPLY =
+  "週末我可以提醒你，不過需要更明確一點：請告訴我是週六或週日、幾點，例如「週六早上九點提醒我整理房間」。";
+
 const CHINESE_HOURS = new Map<string, number>([
   ["一", 1],
   ["二", 2],
@@ -49,6 +52,11 @@ export function parseNaturalReminder(
 ): NaturalReminderResult | undefined {
   const trimmed = text.trim();
   return parseRelativeReminder(trimmed, options) ?? parseCalendarReminder(trimmed, options);
+}
+
+export function needsNaturalReminderClarification(text: string): boolean {
+  const trimmed = text.trim();
+  return trimmed.includes("週末") && trimmed.includes("提醒");
 }
 
 function parseRelativeReminder(

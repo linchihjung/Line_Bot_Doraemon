@@ -3,7 +3,12 @@ import { createRepositories, type Repositories } from "./db/repositories";
 import { GeminiClient, LlmUnavailableError } from "./llm/gemini";
 import { LineClient } from "./line/client";
 import { verifyLineSignature } from "./line/signature";
+import { TavilySearchClient } from "./search/tavily";
 import { routeMessage, type RouteInput } from "./intent/router";
+import {
+  NATURAL_REMINDER_CLARIFICATION_REPLY,
+  needsNaturalReminderClarification,
+} from "./intent/natural-reminder";
 import {
   processDueReminders,
   type ReminderDependencies,
@@ -34,6 +39,7 @@ export interface WorkerDependencies {
   createRepositories(db: D1Database): Repositories;
   createLineClient(channelAccessToken: string): Pick<LineClient, "reply" | "push">;
   createGeminiClient(apiKey: string): Pick<GeminiClient, "generate">;
+  createWebSearchClient(apiKey: string): Pick<TavilySearchClient, "search">;
   routeMessage(input: RouteInput): Promise<{ replyText: string }>;
   processDueReminders(
     nowUtc: string,
@@ -51,6 +57,7 @@ const defaultDependencies: WorkerDependencies = {
   createRepositories,
   createLineClient: (channelAccessToken) => new LineClient(channelAccessToken),
   createGeminiClient: (apiKey) => new GeminiClient({ apiKey }),
+  createWebSearchClient: (apiKey) => new TavilySearchClient({ apiKey }),
   routeMessage,
   processDueReminders,
   verifySignature: verifyLineSignature,
@@ -96,6 +103,9 @@ export function createWorker(
       const repos = deps.createRepositories(env.DB);
       const line = deps.createLineClient(env.LINE_CHANNEL_ACCESS_TOKEN);
       const gemini = deps.createGeminiClient(env.GEMINI_API_KEY);
+      const webSearch = env.TAVILY_API_KEY
+        ? deps.createWebSearchClient(env.TAVILY_API_KEY)
+        : undefined;
 
       try {
         for (const event of payload.events) {
@@ -125,6 +135,7 @@ export function createWorker(
                 conversations: repos.conversations,
               },
               gemini,
+              webSearch,
               setUserTimezone: async (targetUserId, timezone, nowUtc) => {
                 await repos.users.updateTimezone(targetUserId, timezone, nowUtc);
               },
@@ -140,6 +151,14 @@ export function createWorker(
               console.warn("LLM unavailable while processing LINE webhook", {
                 message: error.message,
               });
+              if (needsNaturalReminderClarification(event.message.text)) {
+                await line.reply(
+                  event.replyToken,
+                  NATURAL_REMINDER_CLARIFICATION_REPLY,
+                );
+                continue;
+              }
+
               await line.reply(
                 event.replyToken,
                 "我現在有點連不上模型，請稍後再試一次。",
@@ -152,7 +171,10 @@ export function createWorker(
         }
 
         return new Response("OK", { status: 200 });
-      } catch {
+      } catch (error) {
+        console.error("LINE webhook processing failed", {
+          message: error instanceof Error ? error.message : "Unknown webhook error",
+        });
         return new Response("Internal Server Error", { status: 500 });
       }
     },

@@ -11,6 +11,7 @@ import type {
   TodoRepository,
 } from "../../src/db/repositories";
 import type { GeminiClient, GeminiResult } from "../../src/llm/gemini";
+import type { WebSearchClient } from "../../src/search/tavily";
 
 const NOW = new Date("2026-07-10T08:00:00.000Z");
 
@@ -24,6 +25,27 @@ describe("routeMessage", () => {
     expect(fixture.memories.records).toMatchObject([
       { id: "id-1", user_id: "user-a", content: "我喜歡熱拿鐵" },
     ]);
+    expect(fixture.gemini.generate).not.toHaveBeenCalled();
+  });
+
+  it("returns web search results with sources without calling Gemini", async () => {
+    const fixture = createFixture({
+      webSearch: {
+        search: vi.fn().mockResolvedValue([
+          {
+            title: "Cloudflare D1 docs",
+            url: "https://developers.cloudflare.com/d1/",
+            snippet: "D1 is Cloudflare's SQL database.",
+          },
+        ]),
+      },
+    });
+
+    const result = await routeMessage(fixture.input({ text: "幫我搜尋 Cloudflare D1 文件" }));
+
+    expect(result.replyText).toContain("Cloudflare D1 docs");
+    expect(result.replyText).toContain("https://developers.cloudflare.com/d1/");
+    expect(fixture.webSearch?.search).toHaveBeenCalledWith("Cloudflare D1 文件");
     expect(fixture.gemini.generate).not.toHaveBeenCalled();
   });
 
@@ -140,6 +162,17 @@ describe("routeMessage", () => {
     expect(fixture.gemini.generate).not.toHaveBeenCalled();
   });
 
+  it("asks for clarification for vague weekend reminders without calling Gemini", async () => {
+    const fixture = createFixture();
+
+    const result = await routeMessage(fixture.input({ text: "週末提醒我整理房間" }));
+
+    expect(result.replyText).toContain("週末");
+    expect(result.replyText).toContain("幾點");
+    expect(fixture.gemini.generate).not.toHaveBeenCalled();
+    expect(fixture.reminders.records).toEqual([]);
+  });
+
   it("falls back to Gemini for unsupported natural reminder phrasing", async () => {
     const fixture = createFixture({
       geminiResult: {
@@ -152,7 +185,7 @@ describe("routeMessage", () => {
       },
     });
 
-    const result = await routeMessage(fixture.input({ text: "週末提醒我整理房間" }));
+    const result = await routeMessage(fixture.input({ text: "幫我明天下班前提醒寄信" }));
 
     expect(result.replyText).toContain("已設定提醒");
     expect(fixture.gemini.generate).toHaveBeenCalledOnce();
@@ -317,6 +350,7 @@ function createFixture(options: {
   geminiResult?: GeminiResult;
   geminiResults?: GeminiResult[];
   recentMessages?: ConversationMessageRecord[];
+  webSearch?: WebSearchClient;
 } = {}) {
   let nextId = 1;
   const todos = new FakeTodoRepository();
@@ -340,6 +374,7 @@ function createFixture(options: {
     memories,
     conversations,
     gemini,
+    webSearch: options.webSearch,
     setTimezone,
     clearRecentConversation,
     deleteAllUserData,
@@ -355,6 +390,7 @@ function createFixture(options: {
         setUserTimezone: setTimezone,
         clearRecentConversation,
         deleteAllUserData,
+        webSearch: options.webSearch,
         ...overrides,
       };
     },

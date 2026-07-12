@@ -127,6 +127,39 @@ describe("worker", () => {
     }
   });
 
+  it("asks for clarification for vague weekend reminders when model fallback is unavailable", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const fixture = createFixture({
+      routeMessage: vi
+        .fn()
+        .mockRejectedValue(new LlmUnavailableError("Gemini request failed with 503")),
+    });
+    const worker = createWorker(fixture.deps);
+
+    try {
+      const response = await worker.fetch!(
+        webhookRequest({
+          text: "週末提醒我整理房間",
+          replyToken: "reply-token-weekend",
+        }),
+        fixture.env,
+        executionContext(),
+      );
+
+      expect(response.status).toBe(200);
+      expect(fixture.line.reply).toHaveBeenCalledWith(
+        "reply-token-weekend",
+        expect.stringContaining("週末"),
+      );
+      expect(fixture.line.reply).toHaveBeenCalledWith(
+        "reply-token-weekend",
+        expect.stringContaining("幾點"),
+      );
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it("passes current UTC time into scheduled reminder processing", async () => {
     const scheduledAt = new Date("2026-07-10T08:30:00.000Z");
     const fixture = createFixture({ now: scheduledAt });
@@ -171,6 +204,7 @@ function createFixture(options: {
       LINE_CHANNEL_SECRET: "channel-secret",
       LINE_CHANNEL_ACCESS_TOKEN: "channel-token",
       GEMINI_API_KEY: "gemini-key",
+      TAVILY_API_KEY: "tavily-key",
     } satisfies Env,
     repos,
     line,
